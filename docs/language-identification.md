@@ -31,6 +31,22 @@ Saved language names match available options without regard to case, so `hindi` 
 
 The language control never gates movie selection or searching with Any language. If a valid movie response omits language metadata or supplies malformed metadata, movies remain usable; an explicit filter stays visible and continues to be applied. Empty language metadata means there are no available language options, while missing metadata means availability is unknown. Responses from superseded movie and format requests cannot replace current options, including during the criteria-refresh debounce.
 
+## Interface examples
+
+These screenshots were captured from the local app using live showtime data for ZIP code 10001, within 25 miles, for October 20, 2026. Movie and language availability changes over time.
+
+Before entering a location, **Language · Any** is visible and disabled, with the dropdown hidden.
+
+![Language filter before entering a location](language-filter-default.png)
+
+After movies load, clicking **Language · Any** opens the available language options.
+
+![Expanded language filter after entering a location](language-filter-expanded.png)
+
+Choosing Arabic narrows the movie list and available formats to matching showtimes.
+
+![Arabic language filter with a matching movie and format](language-filter-selected.png)
+
 ## HTTP API
 
 `GET /api/movies` returns `{"movies": [{"title": "Movie title"}], "languages": ["English", "Hindi"]}`. The existing movie structure is unchanged. Language options are sorted and deduplicated across matching theatres and dates, including duplicate entries for the same title, and include only available, non-expired showtimes. The optional language filter affects `movies`, not `languages`.
