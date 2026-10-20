@@ -158,18 +158,6 @@
           </p>
           <div class="grid">
             <div class="field-block full">
-              <label class="select-wrap">
-                <span class="field-label-row">
-                  <span>Language</span>
-                  <span id="languageMeta" class="field-meta" aria-live="polite" aria-atomic="true"></span>
-                </span>
-                <select id="languageInput" aria-describedby="languageStatus" disabled>
-                  <option value="any">Any language</option>
-                </select>
-              </label>
-              <div id="languageStatus" class="status field-status" aria-live="polite"></div>
-            </div>
-            <div class="field-block full">
               <label class="combo">
                 <span class="field-label-row">
                   <span>Movie</span>
@@ -179,6 +167,21 @@
                 <div id="movieMenu" class="combo-menu" role="listbox" aria-label="Matching movies" hidden></div>
               </label>
               <div id="movieStatus" class="status field-status" aria-live="polite"></div>
+            </div>
+            <div id="languageFilter" class="language-filter field-block full">
+              <button id="languageToggle" class="format-guide-toggle language-toggle" type="button" disabled aria-expanded="false" aria-controls="languagePanel" aria-describedby="languageStatus">
+                <span id="languageLabel" aria-live="polite">Language · Any</span>
+                <svg class="format-guide-chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg>
+              </button>
+              <div id="languagePanel" hidden>
+                <div class="select-wrap">
+                  <label for="languageInput">Language</label>
+                  <select id="languageInput" aria-describedby="languageStatus" disabled>
+                    <option value="any">Any language</option>
+                  </select>
+                </div>
+              </div>
+              <div id="languageStatus" class="status field-status" aria-live="polite"></div>
             </div>
             <div class="format-picker field-block full" role="group" aria-labelledby="formatLabel" aria-describedby="formatStatus">
               <span id="formatLabel" class="format-label field-label-row">

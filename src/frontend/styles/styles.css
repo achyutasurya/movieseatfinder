@@ -401,7 +401,8 @@ select {
     background 0.16s ease;
 }
 
-.combo input:disabled {
+.combo input:disabled,
+.language-filter select:disabled {
   border-color: rgba(91, 117, 151, 0.32);
   border-style: dashed;
   background: rgba(91, 117, 151, 0.08);
@@ -456,6 +457,23 @@ select {
 
 .format-picker {
   min-width: 0;
+}
+
+#languagePanel {
+  margin-top: 6px;
+}
+
+#languagePanel[hidden] {
+  display: none;
+}
+
+.language-toggle:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.language-toggle[aria-expanded="true"] .format-guide-chevron {
+  transform: rotate(180deg);
 }
 
 .format-label {
@@ -544,7 +562,7 @@ select {
 }
 
 @media (hover: hover) {
-  .format-guide-toggle:hover {
+  .format-guide-toggle:hover:not(:disabled) {
     color: var(--accent-deep);
   }
 }
@@ -2550,7 +2568,8 @@ input[type="time"] {
   input::placeholder {
     color: #6f7c92;
   }
-  .combo input:disabled {
+  .combo input:disabled,
+  .language-filter select:disabled {
     border-color: #495567;
     background: #111720;
     color: #697589;
@@ -2705,7 +2724,7 @@ input[type="time"] {
 }
 
 @media (prefers-color-scheme: dark) and (hover: hover) {
-  .format-guide-toggle:hover {
+  .format-guide-toggle:hover:not(:disabled) {
     color: #f0b3ae;
   }
   .btn-small:hover:not(:disabled) {

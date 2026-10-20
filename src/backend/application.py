@@ -159,7 +159,6 @@ RATE_LIMITS = {
     # browsing session can issue a burst of these; upstream fetches are cached.
     "/api/search": RateLimitItemPerSecond(30, 60),
     "/api/formats": RateLimitItemPerSecond(30, 60),
-    "/api/languages": RateLimitItemPerSecond(30, 60),
     "/api/movies": RateLimitItemPerSecond(30, 60),
     "/api/theatres": RateLimitItemPerSecond(30, 60),
 }
@@ -518,42 +517,37 @@ def dated_theatres(zip_code, radius, start_date, end_date, theatre_query, origin
             yield theatre
 
 
-def movies_from_dated_theatre_payloads(
+def movie_options_from_dated_theatre_payloads(
     zip_code, radius, start_date, end_date, theatre_query, origin, requested_language="any"
 ):
     seen = set()
     movies = []
+    languages = set()
+    include_all_languages = (
+        not requested_language or clean_title(requested_language).casefold() == "any"
+    )
     for theatre in dated_theatres(zip_code, radius, start_date, end_date, theatre_query, origin):
         for movie in theatre["rawMovies"]:
             title = clean_title(movie.get("title", ""))
             key = normalized_text(title)
-            if (
-                not title
-                or key in seen
-                or not language_matches_for_movie(movie, requested_language)
+            if not title:
+                continue
+            available_languages = movie_languages(movie)
+            languages.update(available_languages)
+            if key in seen or (
+                not include_all_languages
+                and not any(
+                    language_matches(language, requested_language)
+                    for language in available_languages
+                )
             ):
                 continue
             seen.add(key)
             movies.append({"title": title})
-    return sorted(movies, key=lambda movie: movie["title"])
-
-
-def language_matches_for_movie(movie, requested_language):
-    if not requested_language or clean_title(requested_language).casefold() == "any":
-        return True
-    return any(
-        language_matches(language, requested_language) for language in movie_languages(movie)
-    )
-
-
-def languages_from_dated_theatre_payloads(
-    zip_code, radius, start_date, end_date, theatre_query, origin
-):
-    languages = set()
-    for theatre in dated_theatres(zip_code, radius, start_date, end_date, theatre_query, origin):
-        for movie in theatre["rawMovies"]:
-            languages.update(movie_languages(movie))
-    return sorted(languages)
+    return {
+        "movies": sorted(movies, key=lambda movie: movie["title"]),
+        "languages": sorted(languages),
+    }
 
 
 def group_formats(format_name, group):
@@ -1141,33 +1135,6 @@ def api_theatres(
         upstream_error("Could not load real theatre data", error)
 
 
-@app.get("/api/languages")
-def api_languages(
-    request: Request,
-    radius: Radius,
-    zip_code: Annotated[ShortText, Query(alias="zip")] = "",
-    startDate: date | None = None,
-    endDate: date | None = None,
-    theatre: ShortText = "",
-    lat: Annotated[float | None, Query(ge=-90, le=90)] = None,
-    lon: Annotated[float | None, Query(ge=-180, le=180)] = None,
-):
-    enforce_rate_limit(request, "/api/languages")
-    try:
-        start_date = startDate or date.today()
-        end_date = endDate or start_date
-        theatre_query = theatre.lower()
-        search_zip, origin, _ = api_search_location(zip_code, lat, lon)
-        languages = languages_from_dated_theatre_payloads(
-            search_zip, radius, start_date, end_date, theatre_query, origin
-        )
-        return {"languages": languages}
-    except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
-    except UPSTREAM_ERRORS as error:
-        upstream_error("Could not load real language data", error)
-
-
 @app.get("/api/movies")
 def api_movies(
     request: Request,
@@ -1186,10 +1153,9 @@ def api_movies(
         end_date = endDate or start_date
         theatre_query = theatre.lower()
         search_zip, origin, _ = api_search_location(zip_code, lat, lon)
-        movies = movies_from_dated_theatre_payloads(
+        return movie_options_from_dated_theatre_payloads(
             search_zip, radius, start_date, end_date, theatre_query, origin, language
         )
-        return {"movies": movies}
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     except UPSTREAM_ERRORS as error:

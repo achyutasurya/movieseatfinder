@@ -1,6 +1,6 @@
 # Movie Language Identification
 
-This document describes how Movie Seat Finder identifies the spoken language for a Fandango showtime and applies the language-first movie filter.
+This document describes how Movie Seat Finder identifies the spoken language for a Fandango showtime and applies the optional language filter.
 
 ## Source data
 
@@ -21,28 +21,22 @@ Labels are normalized to title case for known languages, including Arabic, Canto
 
 ## Filtering flow
 
-The frontend loads `/api/languages` before `/api/movies`. Selecting a language sends it to `/api/movies`; movies remain in the list when at least one available, non-expired amenity group matches. The same language parameter is passed to `/api/formats` and `/api/search`, so later results cannot reintroduce another language. With an explicit language filter, format options come only from available, non-expired showtimes, including when a group also contains expired or sold-out showtimes in other formats.
+Movies load without a separate language request. `/api/movies` returns the movie list and language options together, using one traversal of the existing Fandango showtime payloads. The **Language · Any** text disclosure is always visible below Movie and uses the same styling as **Which format is best?**, without counts. It is muted and disabled until a valid ZIP code or browser location loads the movie response. Once available, clicking the text reveals the language dropdown; it stays collapsed until opened. The text reflects an active language filter, including when no matching showtimes remain. Missing language metadata leaves Any language visible but disabled; an explicit filter remains editable so it can be cleared.
 
-Changing the language clears the selected movie, movie input, and dependent format selection before reloading movies.
+Choosing a language filters the movie list, formats, and seat-search results. Language options always describe the full location/date/theatre scope, so filtering cannot hide the other choices. The selected movie stays selected if it remains available; otherwise it is cleared with a prompt to choose a movie in the chosen language. Dependent formats refresh and incompatible selections are cleared. Changing movies does not reset the language.
 
 Saved searches, shared links, and criteria refreshes preserve the selected language. If a language no longer has showtimes, the selection remains visible with a `no showtimes` label; the search is never silently broadened to all languages. Omitting the optional `language` parameter preserves the previous API and URL behavior (`any`).
 
 Saved language names match available options without regard to case, so `hindi` selects `Hindi` without adding a duplicate option. `ANY` selects `Any language`. Backend comparisons preserve non-Latin names so distinct languages cannot match merely because they use non-ASCII characters.
 
-Language-loading failures stop dependent movie loads and show an error beside the language field. Refreshing the criteria retries the load. Responses from superseded language requests cannot update options or trigger another movie load.
+The language control never gates movie selection or searching with Any language. If a valid movie response omits language metadata or supplies malformed metadata, movies remain usable; an explicit filter stays visible and continues to be applied. Empty language metadata means there are no available language options, while missing metadata means availability is unknown. Responses from superseded movie and format requests cannot replace current options, including during the criteria-refresh debounce.
 
 ## HTTP API
 
-`GET /api/languages` accepts the same location, radius, date range, and theatre parameters as `/api/movies`, and returns `{"languages": ["English", "Hindi"]}`. `radius` is required; provide a ZIP code through `zip`, or coordinates through `lat` and `lon`. Dates use `startDate` and `endDate`.
+`GET /api/movies` returns `{"movies": [{"title": "Movie title"}], "languages": ["English", "Hindi"]}`. The existing movie structure is unchanged. Language options are sorted and deduplicated across matching theatres and dates, including duplicate entries for the same title, and include only available, non-expired showtimes. The optional language filter affects `movies`, not `languages`.
 
-`/api/movies`, `/api/formats`, and `/api/search` accept an optional, case-insensitive `language` parameter, defaulting to `any`. Seat-search matches include a `language` field. The new endpoint uses the existing validation, upstream-error handling, and rate-limiting conventions.
+`/api/movies`, `/api/formats`, and `/api/search` accept an optional, case-insensitive `language` parameter, defaulting to `any`. With an explicit language filter, formats come only from available, non-expired matching showtimes. Seat-search matches include a `language` field. Existing validation, upstream-error handling, and rate limiting still apply. The separate `/api/languages` endpoint has been removed.
 
 ## Testing and maintenance
 
-Parser cases are in `tests/test_application.py`; the language-first UI flow and movie reset are in `tests/browser.integration.spec.mjs`. When Fandango introduces a new pattern, add a fixture and test before changing the parser. Prefer explicit spoken-language evidence and never infer a spoken language from subtitle or accessibility metadata alone.
-
-## Interface preview
-
-![Hindi selected before choosing a movie](language-filter.png)
-
-Example captured with controlled language and movie responses.
+Parser cases are in `tests/test_application.py`; the language text disclosure, movie selection, saved searches, and stale-response handling are in `tests/browser.integration.spec.mjs`. When Fandango introduces a new pattern, add a fixture and test before changing the parser. Prefer explicit spoken-language evidence and never infer a spoken language from subtitle or accessibility metadata alone.
